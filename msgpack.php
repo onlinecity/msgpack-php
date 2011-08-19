@@ -10,7 +10,8 @@
  */
 function msgpack_pack($input)
 {
-	$bigendian = (pack('S',1)==pack('n',1));
+	static $bigendian;
+	if (!isset($bigendian)) $bigendian = (pack('S',1)==pack('n',1)); 
 
 	// null
 	if (is_null($input)) {
@@ -127,27 +128,28 @@ function msgpack_pack($input)
  */
 function msgpack_unpack($input)
 {
-	$bigendian = (pack('S',1)==pack('n',1));
+	static $bigendian;
+	if (!isset($bigendian)) $bigendian = (pack('S',1)==pack('n',1));
 
 	// Store input into a memory buffer so we can operate on it with filepointers
 	static $buffer;
+	static $pos;
+	static $bufferLength;
 	if (!isset($buffer)) {
-		$buffer = fopen('php://memory','w+');
-		fwrite($buffer,$input);
-		rewind($buffer);
+		$buffer = $input;
+		$bufferLength = strlen($buffer);
+		$pos = 0;
+	}
+	
+	if ($pos==$bufferLength) {
+		$buffer = $input;
+		$bufferLength = strlen($buffer);
+		$pos = 0;
 	}
 
 	// Read a single byte
-	$byte = fread($buffer,1);
+	$byte = substr($buffer,$pos++,1);
 	
-	// Re-open buffer on read error, probably EOF
-	if ($byte === false || $byte === "") { 
-		fclose($buffer);
-		$buffer = fopen('php://memory','w+');
-		fwrite($buffer,$input);
-		rewind($buffer);
-		$byte = fread($buffer,1);
-	}
 
 	// null
 	if ($byte == "\xC0") return null;
@@ -170,7 +172,9 @@ function msgpack_unpack($input)
 	if ((($byte ^ "\xA0") & "\xE0") == "\x00") {
 		$len = current(unpack('c',($byte ^ "\xA0")));
 		if ($len == 0) return "";
-		return current(unpack('a'.$len,fread($buffer,$len)));
+		$d = substr($buffer,$pos,$len);
+		$pos+=$len;
+		return current(unpack('a'.$len,$d));
 	}
 
 	// Arrays
@@ -183,8 +187,16 @@ function msgpack_unpack($input)
 		}
 		return $data;
 	} else if ($byte == "\xDC" || $byte == "\xDD") {
-		if ($byte == "\xDC") $len = current(unpack('n',fread($buffer,2)));
-		if ($byte == "\xDD") $len = current(unpack('N',fread($buffer,4)));
+		if ($byte == "\xDC") {
+			$d = substr($buffer,$pos,2);
+			$pos+=2;
+			$len = current(unpack('n',$d));
+		}
+		if ($byte == "\xDD") {
+			$d = substr($buffer,$pos,4);
+			$pos+=4;
+			$len = current(unpack('N',$d));
+		}
 		$data = array();
 		for($i=0;$i<$len;$i++) {
 			$data[] = msgpack_unpack($input);
@@ -204,8 +216,16 @@ function msgpack_unpack($input)
 		}
 		return $data;
 	} else if ($byte == "\xDE" || $byte == "\xDF") {
-		if ($byte == "\xDE") $len = current(unpack('n',fread($buffer,2)));
-		if ($byte == "\xDF") $len = current(unpack('N',fread($buffer,4)));
+		if ($byte == "\xDE") {
+			$d = substr($buffer,$pos,2);
+			$pos+=2;
+			$len = current(unpack('n',$d));
+		}
+		if ($byte == "\xDF") {
+			$d = substr($buffer,$pos,4);
+			$pos+=4;
+			$len = current(unpack('N',$d));
+		}
 		$data = array();
 		for($i=0;$i<$len;$i++) {
 			$key = msgpack_unpack($input);
@@ -218,42 +238,66 @@ function msgpack_unpack($input)
 	switch ($byte) {
 		// Unsigned integers
 		case "\xCC": // uint 8
-			return current(unpack('C',fread($buffer,1)));
+			return current(unpack('C',substr($buffer,$pos++,1)));
 		case "\xCD": // uint 16
-			return current(unpack('n',fread($buffer,2)));
+			$d = substr($buffer,$pos,2);
+			$pos+=2;
+			return current(unpack('n',$d));
 		case "\xCE": // uint 32
-			return current(unpack('N',fread($buffer,4)));
+			$d = substr($buffer,$pos,4);
+			$pos+=4;
+			return current(unpack('N',$d));
 		case "\xCF": // uint 64
+			$d = substr($buffer,$pos,8);
+			$pos+=8;
 			// Unpack into two uint32 and re-assemble
-			$dat = unpack('Np1/Np2',fread($buffer,8));
+			$dat = unpack('Np1/Np2',$d);
 			$dat['p1'] = $dat['p1'] << 32;
 			return $dat['p1']|$dat['p2'];
 
 		// Signed integers
 		case "\xD0": // int 8
-			return current(unpack('c',fread($buffer,1)));
+			return current(unpack('c',substr($buffer,$pos++,1)));
 		case "\xD1": // int 16
-			return (current(unpack('n',~fread($buffer,2)))+1)*-1;
+			$d = substr($buffer,$pos,2);
+			$pos+=2;
+			return (current(unpack('n',~$d))+1)*-1;
 		case "\xD2": // int 32
-			return (current(unpack('N',~fread($buffer,4)))+1)*-1;
+			$d = substr($buffer,$pos,4);
+			$pos+=4;
+			return (current(unpack('N',~$d))+1)*-1;
 		case "\xD3": // int 64
-			$dat = unpack('Np1/Np2',~fread($buffer,8));
+			$d = substr($buffer,$pos,8);
+			$pos+=8;
+			$dat = unpack('Np1/Np2',~$d);
 			$dat['p1'] = $dat['p1'] << 32;
 			return (($dat['p1']|$dat['p2'])+1)*-1;
 				
 		// String / Raw
 		case "\xDA": // raw 16
-			$len = current(unpack('n',fread($buffer,2)));
-			return current(unpack('a'.$len,fread($buffer,$len)));
+			$d = substr($buffer,$pos,2);
+			$pos+=2;
+			$len = current(unpack('n',$d));
+			$d = substr($buffer,$pos,$len);
+			$pos+=$len;
+			return current(unpack('a'.$len,$d));
 		case "\xDB": // raw 32
-			$len = current(unpack('N',fread($buffer,4)));
-			return current(unpack('a'.$len,fread($buffer,$len)));
+			$d = substr($buffer,$pos,4);
+			$pos+=4;
+			$len = current(unpack('N',$d));
+			$d = substr($buffer,$pos,$len);
+			$pos+=$len;
+			return current(unpack('a'.$len,$d));
 				
 		// Floats
 		case "\xCA": // single-precision
-			return current(unpack('f',$bigendian ? fread($buffer,4) : strrev(fread($buffer,4))));
+			$d = substr($buffer,$pos,4);
+			$pos+=4;
+			return current(unpack('f',$bigendian ? $d : strrev($d)));
 		case "\xCB": // double-precision
-			return current(unpack('d',$bigendian ? fread($buffer,8): strrev(fread($buffer,8))));
+			$d = substr($buffer,$pos,8);
+			$pos+=8;
+			return current(unpack('d',$bigendian ? $d : strrev($d)));
 
 	}
 

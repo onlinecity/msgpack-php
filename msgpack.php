@@ -229,7 +229,7 @@ function msgpack_unpack($input)
 			$dat['p1'] = $dat['p1'] << 32;
 			return $dat['p1']|$dat['p2'];
 
-			// Signed integers
+		// Signed integers
 		case "\xD0": // int 8
 			return current(unpack('c',fread($buffer,1)));
 		case "\xD1": // int 16
@@ -241,7 +241,7 @@ function msgpack_unpack($input)
 			$dat['p1'] = $dat['p1'] << 32;
 			return (($dat['p1']|$dat['p2'])+1)*-1;
 				
-			// String / Raw
+		// String / Raw
 		case "\xDA": // raw 16
 			$len = current(unpack('n',fread($buffer,2)));
 			return current(unpack('a'.$len,fread($buffer,$len)));
@@ -249,7 +249,7 @@ function msgpack_unpack($input)
 			$len = current(unpack('N',fread($buffer,4)));
 			return current(unpack('a'.$len,fread($buffer,$len)));
 				
-			// Floats
+		// Floats
 		case "\xCA": // single-precision
 			return current(unpack('f',$bigendian ? fread($buffer,4) : strrev(fread($buffer,4))));
 		case "\xCB": // double-precision

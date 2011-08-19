@@ -134,16 +134,13 @@ function msgpack_unpack($input)
 	// Store input into a memory buffer so we can operate on it with filepointers
 	static $buffer;
 	static $pos;
-	static $bufferLength;
 	if (!isset($buffer)) {
 		$buffer = $input;
-		$bufferLength = strlen($buffer);
 		$pos = 0;
 	}
 	
-	if ($pos==$bufferLength) {
+	if ($pos==strlen($buffer)) {
 		$buffer = $input;
-		$bufferLength = strlen($buffer);
 		$pos = 0;
 	}
 

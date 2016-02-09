@@ -1,5 +1,6 @@
 <?php
-
+date_default_timezone_set('UTC');
+error_reporting(E_STRICT |  E_ALL);
 
 require_once 'msgpack.php';
 
@@ -67,13 +68,15 @@ class DataTest extends PHPUnit_Framework_TestCase
             'array("one" => 1, "two" =>  2)' => array(array("one" =>  1, "two" =>  2)),
             'array("kek" =>  "lol", "lol" => "kek")' => array(array("kek" => "lol", "lol" => "kek")),
             'array("")' => array( array() ),
+            'array(1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16)' => array(array(1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16)),
+            'associative array with more than 15 entries' => array(array("f1"=>1,"f2"=>2,"f3"=>3,"f4"=>4,"f5"=>5,"f6"=>6,"f7"=>7,"f8"=>8,"f9"=>9,"f10"=>10,"f11"=>11,"f12"=>12,"f13"=>13,"f14"=>14,"f15"=>15,"f16"=>16)),
         );
     }
 
     // PHP has poor binary support for 16-bit integers, so just iterate of all of them
     public function testShortIntTrip()
     {
-        for ($i = -0xFFFF; $i <= 0xFFFF; $i++) {
+        for ($i = -0x10000; $i <= 0x10000; $i += 29) {
             $this->assertEquals($i, msgpack_unpack(msgpack_pack($i)));
         }
     }

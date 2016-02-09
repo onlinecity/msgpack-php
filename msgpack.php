@@ -2,7 +2,7 @@
 
 /**
  * Pack some input into msgpack format.
- * Format specs: http://wiki.msgpack.org/display/MSGPACK/Format+specification
+ * Format specs: https://github.com/msgpack/msgpack/blob/master/spec.md
  *
  * @param mixed $input
  * @return string

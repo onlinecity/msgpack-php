@@ -258,18 +258,26 @@ function msgpack_unpack($input)
 		case "\xD1": // int 16
 			$d = substr($buffer,$pos,2);
 			$pos+=2;
-			return (current(unpack('n',~$d))+1)*-1;
+            // PHP does not have a "signed short, big-endian" unpacker
+            // Get unsigned version and convert to negative if needed
+            $unsigned = current(unpack('n',$d));
+            return ($unsigned < 0x8000) ? $unsigned : ($unsigned & 0x7FFF) - 0x8000;
 		case "\xD2": // int 32
 			$d = substr($buffer,$pos,4);
 			$pos+=4;
-			return (current(unpack('N',~$d))+1)*-1;
+            // again, there is no "int32, big-endian" unpacker
+            // the following might work on 32-bit machines, but fails on 64-bit
+            //return (current(unpack('N',~$d))+1)*-1;
+            $unsigned = current(unpack('N', $d));
+            return ($unsigned < 0x80000000) ? $unsigned : ($unsigned & 0x7FFFFFFF) - 0x80000000;
 		case "\xD3": // int 64
 			$d = substr($buffer,$pos,8);
 			$pos+=8;
 			$dat = unpack('Np1/Np2',~$d);
+            // this next line will cause p1 to be negative if
+            //   high bit is set, on 64-bit machines
 			$dat['p1'] = $dat['p1'] << 32;
 			return (($dat['p1']|$dat['p2'])+1)*-1;
-				
 		// String / Raw
 		case "\xDA": // raw 16
 			$d = substr($buffer,$pos,2);

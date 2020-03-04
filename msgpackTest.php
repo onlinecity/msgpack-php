@@ -13,7 +13,7 @@ class DataTest extends PHPUnit_Framework_TestCase
      */
     public function testRoundTrip($val)
     {
-        $this->assertEquals($val, msgpack_unpack(msgpack_pack($val)));
+        $this->assertEquals($val, msgpack_unpackb(msgpack_packb($val)));
     }
 
     public function roundTripProvider()
@@ -77,7 +77,7 @@ class DataTest extends PHPUnit_Framework_TestCase
     public function testShortIntTrip()
     {
         for ($i = -0x10000; $i <= 0x10000; $i += 29) {
-            $this->assertEquals($i, msgpack_unpack(msgpack_pack($i)));
+            $this->assertEquals($i, msgpack_unpackb(msgpack_packb($i)));
         }
     }
 
@@ -88,7 +88,7 @@ class DataTest extends PHPUnit_Framework_TestCase
      */
     public function testNegatives($hex, $val)
     {
-        $this->assertEquals($val, msgpack_unpack(hex2bin($hex)));
+        $this->assertEquals($val, msgpack_unpackb(hex2bin($hex)));
     }
 
     public function negativesProvider()

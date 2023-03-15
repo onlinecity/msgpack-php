@@ -1,18 +1,26 @@
 MessagePack PHP functions
 =============
 
-The purpose of this project is to implement [MessagePack](http://msgpack.org/) serialization using only PHP. This might be useful for someone unable to install php-modules, or using [HipHop](https://github.com/facebook/hiphop-php) to compile PHP as C++.  
+The purpose of this project is to implement [MessagePack](http://msgpack.org/) serialization using only PHP. It aims to work even on very old versions of PHP, such as found in many long-term support server distros, while supporting the modern str8/bin8/bin16/bin32 additions to msgpack.
+
+Additions
+-----
+
+ - Supports decoding and encoding str8 and bin8/16/32 types.
+ - By analogy to the python implementation, msgpack_unpackb accepts $raw parameter determining handling of str types (default: $raw=True).
+ - By analogy to the python implementation, msgpack_packb accepts $use_bin_type parameter determining use of bin types (default: $use_bin_type=False).
+ - PHP has no concept of bytes vs unicode strings, so msgpack_packb also accepts $force_str_as_bin parameter forcing the use of bin types event for
+   strings that are valid utf-8.
 
 Caveats
 -----
 
- - Only msgpack_pack() and msgpack_unpack() are defined.
- - It's only tested on [little endian](http://en.wikipedia.org/wiki/Endianness) architecture, but should work on big endian as well, please test it if able. 
- - The uint64 and int64 types probably requires 64-bit systems to work
+ - Only msgpack_packb() and msgpack_unpackb() are defined.
+ - It's only tested on [little endian](http://en.wikipedia.org/wiki/Endianness) architecture, but should work on big endian as well. 
  - It uses is_x() to select the type, do your casts before using the functions
- - Unlike the official lib you can't pack objects. If you know how to do this please fork.
+ - Unlike the official lib you can't pack objects. Feel free to submit a pull request to add this functionality.
  - It will always pack integers into the least amount of bits possible, and will prefer unsigned.
- 
+ - It does not support ext/fixext types.
  
 Benchmark
 -----

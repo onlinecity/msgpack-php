@@ -9,8 +9,8 @@ require_once 'msgpack.php';
 function test($type, $var)
 {
 	echo "================\n".$type."\n";
-	$e = msgpack_pack($var);
-	$d = msgpack_unpack($e);
+	$e = msgpack_packb($var);
+	$d = msgpack_unpackb($e);
 
 	echo "\t".bin2hex($e)."\t".$e."\n\t";
 	echo str_replace("\n","\n\t",var_export($d,true))."\n";
